@@ -1,0 +1,122 @@
+---
+title: "Progress Memo 1: Heart Disease Mortality in the United States"
+author: "Rayan Nur"
+date: "2026-11-01"
+format: html
+embed-resources: true
+execute:
+  warning: false
+  message: false
+---
+
+## GitHub Repository
+
+[Heart Disease Mortality EDA](https://github.com/rayannur2029-bit/heart-disease-mortality-eda)
+
+## Introduction
+
+For my final project in STAT 301-1, I want to look at heart disease deaths in
+the U.S. My main question is: how do heart disease death rates change across
+counties, and how do they differ by sex and race/ethnicity? I picked this
+topic because heart disease is a big public health problem and I want to see
+where and in which groups it is most common.
+
+## Data Source
+
+I am using the CDC's *Heart Disease Mortality Data Among US Adults (35+) by
+State/Territory and County, 2022–2024*. It is on the
+[CDC Data Portal](https://data.cdc.gov/d/mri7-5jtw). The rates are averaged
+over three years, so I can't use this data to look at changes over time.
+
+## Data Import
+
+```{r}
+library(tidyverse)
+
+heart_data <- read_csv(
+  "https://data.cdc.gov/api/views/mri7-5jtw/rows.csv?accessType=DOWNLOAD"
+)
+```
+
+## Data Overview
+
+```{r}
+#| label: tbl-overview
+#| tbl-cap: "Size and variable types of the dataset"
+
+overview <- tibble(
+  Measurement = c(
+    "Number of observations",
+    "Number of variables",
+    "Numeric variables",
+    "Character variables"
+  ),
+  Value = c(
+    nrow(heart_data),
+    ncol(heart_data),
+    sum(map_lgl(heart_data, is.numeric)),
+    sum(map_lgl(heart_data, is.character))
+  )
+)
+
+knitr::kable(overview)
+```
+
+@tbl-overview shows the size of the data and how many variables are numeric
+or character. Each row is an estimate for one place and one group of people,
+not one person.
+
+## Data Quality
+
+```{r}
+#| label: tbl-missing
+#| tbl-cap: "Variables with missing values"
+
+missing_values <- heart_data |>
+  summarise(across(everything(), ~ sum(is.na(.x)))) |>
+  pivot_longer(
+    everything(),
+    names_to = "Variable",
+    values_to = "Missing_Values"
+  ) |>
+  filter(Missing_Values > 0) |>
+  arrange(desc(Missing_Values))
+
+knitr::kable(missing_values)
+```
+
+@tbl-missing shows which variables have missing values. The death rate
+(`Data_Value`) is missing in 43,726 of the 78,792 rows, which is about 55%.
+The CDC footnote for all of these rows says "Insufficient Data." So more than
+half of the place and group combinations have no rate, and this will make
+some comparisons harder, especially for counties. The footnote columns are
+only empty when a rate is there, and the coordinates are missing in just 24
+rows. Before I start exploring, I will check which places and groups are
+missing rates.
+
+## Dataset Complexity
+
+I think this dataset is complex enough because it has a lot of rows and
+different kinds of variables: places, groups, and numbers. County, state, and
+national rows are mixed together, so I will need to filter and group with
+tidyverse functions to keep them apart. The rate column also has to be
+changed to numbers before I can use it. To compare parts of the country, I
+plan to make a region variable with `case_when()`. I would like feedback on
+whether this is enough for the project.
+
+## Planned Explorations
+
+1. How do death rates differ across states and counties?
+2. Are rates different for men and women?
+3. How do rates compare across racial and ethnic groups?
+4. Which regions have the highest and lowest rates?
+
+## Generative AI Usage
+
+I used ChatGPT to help organize and revise my memo and assist with the R code. I reviewed the code and verified the results myself to ensure they were accurate.
+
+## References
+
+Centers for Disease Control and Prevention. (2026). *Heart Disease Mortality
+Data Among US Adults (35+) by State/Territory and County, 2022–2024*. CDC
+Data Portal. https://data.cdc.gov/d/mri7-5jtw
